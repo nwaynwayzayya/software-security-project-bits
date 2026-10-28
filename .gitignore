@@ -1,0 +1,54 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build / artifacts
+dist/
+build/
+*.o
+*.out
+*.bin
+
+# Compiled lab binaries (regenerate with `make`: vuln, vuln-hardened,
+# vuln-canaryonly, vuln-fortifyonly, fuzz, …)
+vuln
+vuln-*
+fuzz
+
+# Security tool output
+*.sarif
+trivy-report.*
+semgrep-report.*
+sbom.json
+sbom.xml
+*.sig
+
+# Secrets — never commit
+.env
+*.pem
+*.key
+secrets/
+
+# Instructor-only — answer keys, CTF flags, exam keys (never publish)
+instructor/
+
+# libFuzzer crash artifacts
+crash-*
+.gstack/
+
+# /codex skill session-continuity state (Codex thread ID for resume)
+.context/
