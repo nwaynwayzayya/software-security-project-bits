@@ -1,11 +1,11 @@
-Finding: F-03 — Registration role escalation
+Finding: F-03 ï¿½ Registration role escalation
 Date: 2026-11-02T00:02:13.5655401+07:00
 Git commit: 93a2e9bf8cd3306d64edc25351c97fbb604b7303
 
 Control:
 A normal registration without a role was tested with a disposable account.
 Expected admin response: 403
-Record the observed status here.
+Observed admin response for normal registration: 403
 
 Exploit:
 Registration endpoint: POST http://localhost:8080/register

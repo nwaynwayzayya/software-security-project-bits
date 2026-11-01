@@ -129,6 +129,51 @@ One block per finding (copy as needed):
 
 - The root cause is that the endpoint checks authentication but does not check ownership. The database query filters only by note ID. The secure query must constrain both the note ID and the authenticated owner.
 
+
+### Finding F-05 — SQL injection in search
+
+| Field | Value |
+|---|---|
+| CWE | CWE-89 — Improper Neutralization of Special Elements used in an SQL Command |
+| OWASP 2025 | A03 — Injection |
+| Severity | High |
+| Location | `app.py`, `/search` route |
+| Reproduction | Log in as Alice and perform a normal search for `milk`. Then submit the search payload `%' OR owner='admin' -- `. The vulnerable query can be altered so that administrator-owned notes appear in Alice's search results. |
+| Impact | An authenticated user can manipulate the search query and potentially read notes outside the user's ownership scope. |
+| Evidence | `evidence/findings/F-05-search-sqli.txt` and `evidence/findings/screenshots/F-05-search-sqli.png` |
+
+- The root cause is that both the authenticated username and attacker-controlled search term are interpolated into SQL. The owner and search pattern must be passed as SQL parameters.
+
+
+### Finding F-06 — Stored cross-site scripting in note rendering
+
+| Field | Value |
+|---|---|
+| CWE | CWE-79 — Improper Neutralization of Input During Web Page Generation |
+| OWASP 2025 | A05 — Injection |
+| Severity | High |
+| Location | `app.py`, homepage template and `/search` response rendering |
+| Reproduction | Log in as Alice and create a note containing `<script>alert(document.domain)</script>`. Visit `http://localhost:8080/`. The stored script executes in the browser when the note is rendered. |
+| Impact | An attacker can store script content that executes in another user's browser when the note is viewed. This could enable session abuse or actions in the victim's browser. |
+| Evidence | `evidence/findings/F-06-xss.txt`, `evidence/findings/screenshots/F-06-xss-home.png`, and `evidence/findings/screenshots/F-06-xss-alert.png` |
+
+- The root cause is string-built HTML combined with `|safe`, which disables Jinja's normal escaping. User-controlled note values must be passed as structured template data and rendered with contextual escaping.
+
+
+### Finding F-07 — Command injection in export
+
+| Field | Value |
+|---|---|
+| CWE | CWE-78 — Improper Neutralization of Special Elements used in an OS Command |
+| OWASP 2025 | A03 — Injection |
+| Severity | High |
+| Location | `app.py`, `/export` route |
+| Reproduction | Authenticate as Alice and request `/export?fmt=txt%3Bid`. The vulnerable route passes the attacker-controlled value to `subprocess.run(..., shell=True)`, causing the harmless `id` command to execute and return output. |
+| Impact | An authenticated attacker can execute operating-system commands in the application process context. |
+| Evidence | `evidence/findings/F-07-command-injection.txt` and `evidence/findings/screenshots/F-07-command-injection.png` |
+
+- The root cause is concatenating attacker-controlled input into a shell command and enabling `shell=True`. The export behavior should be implemented directly in Python or use a strict allowlist with argument-list execution and `shell=False`.
+
 ---
 
 ## 5. Remediation  *(25 pts)*

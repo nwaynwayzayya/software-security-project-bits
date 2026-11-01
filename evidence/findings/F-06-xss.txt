@@ -1,0 +1,13 @@
+Finding: F-06 - Stored cross-site scripting
+Date: 2026-11-02T00:55:12.1424044+07:00
+Git commit: 11c3264638fe5e0549994810f81c5586f5524db2
+Create-note endpoint: POST http://localhost:8080/notes
+Payload: <script>alert(document.domain)</script>
+Authenticated test account: Alice
+Payload location: note body
+Expected secure result: payload displayed as text; no JavaScript execution
+Observed vulnerable result: browser alert executed when the homepage rendered the stored note
+Home-page evidence: evidence/findings/screenshots/F-06-xss-home.png
+Alert evidence: evidence/findings/screenshots/F-06-xss-alert.png
+Search evidence, evidence/findings/screenshots/F-06-xss-search.png
+Result: CONFIRMED 

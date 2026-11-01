@@ -1,10 +1,10 @@
-Finding: F-04 — Insecure direct object reference in note retrieval
+Finding: F-04 ï¿½ Insecure direct object reference in note retrieval
 Date: 2026-11-02T00:04:12.9856818+07:00
 Git commit: 93a2e9bf8cd3306d64edc25351c97fbb604b7303
 
 Control 1: unauthenticated request to /api/notes/2
 Expected: 401
-Record observed status here.
+Observed: 401
 
 Control 2: Alice requests her own note /api/notes/1
 Expected: 200 with owner=alice
