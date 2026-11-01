@@ -1,0 +1,7 @@
+Test: Baseline search
+Date: 2026-11-01T19:52:40.8610684+07:00
+Git commit: b3a1e5df76a7dd158215c1110d990a46f3303862
+URL: http://localhost:8080/search?q=milk
+Expected: Alice's matching note is displayed.
+Actual: PASS - record what you observed.
+Evidence: evidence/baseline/screenshots/05-search-results.png

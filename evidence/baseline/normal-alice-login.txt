@@ -1,0 +1,8 @@
+Test: Baseline Alice login
+Date: 2026-11-01T19:52:05.4711248+07:00
+Git commit: b3a1e5df76a7dd158215c1110d990a46f3303862
+URL: http://localhost:8080/
+Credentials: seeded local test account alice; password not recorded
+Expected: Successful login and redirect to the homepage.
+Actual: PASS - record what you observed.
+Evidence: evidence/baseline/screenshots/02-alice-login.png

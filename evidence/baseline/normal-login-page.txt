@@ -1,0 +1,7 @@
+Test: Baseline login page
+Date: 2026-11-01T19:51:56.9702204+07:00
+Git commit: b3a1e5df76a7dd158215c1110d990a46f3303862
+URL: http://localhost:8080/
+Expected: Login and registration forms are displayed.
+Actual: PASS - record what you observed.
+Evidence: evidence/baseline/screenshots/01-login-page.png

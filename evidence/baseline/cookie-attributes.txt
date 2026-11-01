@@ -1,0 +1,9 @@
+Test: Baseline session cookie attributes
+Date: 2026-11-01T19:57:22.0958718+07:00
+Git commit: b3a1e5df76a7dd158215c1110d990a46f3303862
+Cookie: session
+HttpOnly: record present or absent
+Secure: record present or absent
+SameSite: record present or absent
+Important: Do not record the cookie value.
+Evidence: browser developer tools screenshot, if available.
