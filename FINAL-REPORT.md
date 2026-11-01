@@ -174,6 +174,21 @@ One block per finding (copy as needed):
 
 - The root cause is concatenating attacker-controlled input into a shell command and enabling `shell=True`. The export behavior should be implemented directly in Python or use a strict allowlist with argument-list execution and `shell=False`.
 
+
+### Finding F-08 — Weak MD5 password hashing and password-hash disclosure
+
+| Field | Value |
+|---|---|
+| CWE | CWE-327 — Use of a Broken or Risky Cryptographic Algorithm; CWE-916 — Use of Password Hash With Insufficient Computational Effort; CWE-200 — Exposure of Sensitive Information |
+| OWASP 2025 | A04 — Cryptographic Failures |
+| Severity | High |
+| Location | `app.py`, password creation/login logic and `/admin` route |
+| Reproduction | Authenticate as the local administrator and request `GET http://localhost:8080/admin`. The response contains a `password` property for each user. Source inspection confirms the values are generated with MD5. |
+| Impact | Password hashes are disclosed to clients and can be cracked more easily because MD5 is fast and not an appropriate password-storage algorithm. |
+| Evidence | `evidence/findings/F-08-password-disclosure.txt` and `evidence/findings/screenshots/F-08-password-disclosure.png` |
+
+- The root cause has two parts: the application uses MD5 instead of a slow password-hashing scheme such as Argon2id, bcrypt, or scrypt, and the administrator endpoint serializes the password column into its JSON response. Password hashes must never be returned to clients.
+
 ---
 
 ## 5. Remediation  *(25 pts)*
