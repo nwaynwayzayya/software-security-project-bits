@@ -70,16 +70,64 @@ The in-scope endpoints are `/`, `/register`, `/login`, `/logout`, `/notes`, `/ap
 
 One block per finding (copy as needed):
 
-### Finding F-01 — <title>
+### Finding F-01 — Forged administrator session token
+
 | Field | Value |
 |---|---|
-| CWE | CWE-___ |
-| OWASP 2025 | A__ / API__ / LLM__ |
-| Severity | Critical / High / Medium / Low |
-| Location | file:line or endpoint |
-| Reproduction | step-by-step (payload/command) |
-| Impact | what an attacker gains |
-| Evidence | screenshot / request-response |
+| CWE | CWE-347 — Improper Verification of Cryptographic Signature; CWE-798 — Use of Hard-coded Credentials |
+| OWASP 2025 | A07 — Identification and Authentication Failures |
+| Severity | Critical |
+| Location | `app.py`: hard-coded `SECRET`, `current_user()`, and `/admin` authorization |
+| Reproduction | A request without a session and a request using a normal Alice session returned HTTP 403. A locally generated HS256 JWT with `sub=admin`, signed using the exposed development secret, was then sent as the `session` cookie to `GET http://localhost:8080/admin`. The response returned HTTP 200 and administrator records. |
+| Impact | An attacker who knows the exposed signing secret can forge an authenticated administrator identity and access administrative functionality. |
+| Evidence | `evidence/findings/F-01-forged-session.txt` and `evidence/findings/screenshots/F-01-forged-session.png` |
+
+- The root cause is the hard-coded session-signing secret and insufficiently robust JWT validation. The application also lists `none` among the accepted algorithms. The confirmed working exploit in the installed environment used a forged HS256 token.
+
+
+### Finding F-02 — SQL injection in login
+
+| Field | Value |
+|---|---|
+| CWE | CWE-89 — Improper Neutralization of Special Elements used in an SQL Command |
+| OWASP 2025 | A03 — Injection |
+| Severity | High |
+| Location | `app.py`, `/login` route, SQL query construction |
+| Reproduction | A normal request using Alice's username and an incorrect password returned HTTP 401. A request using `username=' OR 1=1 -- ` and any password returned HTTP 302, set a session cookie, and redirected to `/`. |
+| Impact | An unauthenticated attacker can bypass password authentication and obtain an authenticated application session. |
+| Evidence | `evidence/findings/F-02-login-sqli.txt` and `evidence/findings/screenshots/F-02-login-sqli.png` |
+
+- The root cause is direct interpolation of attacker-controlled username data into a SQL statement. Parameterized queries are required so the input remains data rather than SQL syntax.
+
+
+### Finding F-03 — Privilege escalation through self-registration
+
+| Field | Value |
+|---|---|
+| CWE | CWE-269 — Improper Privilege Management; CWE-266 — Incorrect Privilege Assignment |
+| OWASP 2025 | A01 — Broken Access Control |
+| Severity | High |
+| Location | `app.py`, `/register` route |
+| Reproduction | A normal registration without a role produced a non-administrator account. A second disposable registration submitted `role=admin`, and the new account then accessed `GET http://localhost:8080/admin` with HTTP 200. |
+| Impact | An unauthenticated user can create an administrator account and access administrative data. |
+| Evidence | `evidence/findings/F-03-role-escalation.txt` and `evidence/findings/screenshots/F-03-role-escalation.png` |
+
+- The root cause is client-controlled assignment of a server-side authorization attribute. Public registration must ignore the submitted role and assign a fixed non-privileged role.
+
+
+### Finding F-04 — Insecure direct object reference in note retrieval
+
+| Field | Value |
+|---|---|
+| CWE | CWE-639 — Authorization Bypass Through User-Controlled Key |
+| OWASP 2025 | A01 — Broken Access Control; API1:2023 — Broken Object Level Authorization |
+| Severity | High |
+| Location | `app.py`, `/api/notes/<int:nid>` route |
+| Reproduction | Alice successfully reads her own note at `/api/notes/1`. Using the same authenticated session, she changes only the identifier to `/api/notes/2` and receives the administrator-owned note with HTTP 200. An unauthenticated request is rejected with HTTP 401. |
+| Impact | Any authenticated user can read another user's note by changing the numeric note ID. |
+| Evidence | `evidence/findings/F-04-idor.txt` and `evidence/findings/screenshots/F-04-idor.png` |
+
+- The root cause is that the endpoint checks authentication but does not check ownership. The database query filters only by note ID. The secure query must constrain both the note ID and the authenticated owner.
 
 ---
 

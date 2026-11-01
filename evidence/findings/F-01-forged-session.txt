@@ -1,0 +1,25 @@
+Finding: F-01 — Forged administrator session token
+Date: 2026-11-01T23:56:26.5536302+07:00
+Git commit: 93a2e9bf8cd3306d64edc25351c97fbb604b7303
+Target: GET http://localhost:8080/admin
+
+Control 1: no session
+Expected: 403
+Observed: 403
+
+Control 2: legitimate Alice session
+Expected: 403
+Observed: 403
+
+Exploit: forged HS256 JWT with sub=admin
+Token value: not recorded
+Expected: unauthorized forged identity should be rejected
+Observed: HTTP 200 with administrator records
+
+Confirmed impact:
+The vulnerable application accepted a forged administrator identity.
+
+Secret handling:
+The known vulnerable development secret was used only in the local sandbox and is not recorded in this evidence.
+
+Result: CONFIRMED
