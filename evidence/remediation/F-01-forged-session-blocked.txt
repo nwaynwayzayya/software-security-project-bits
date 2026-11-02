@@ -1,0 +1,6 @@
+Finding: F-01 - Forged administrator session token
+Verification target: GET /admin with an HS256 token signed using the old exposed baseline secret
+Observed result: HTTP/1.1 403 FORBIDDEN (forbidden)
+Expected secure result: A token signed with an unavailable or obsolete secret cannot grant administrator access.
+Root cause addressed: The signing secret is injected through NOTEVAULT_SECRET and the decoder accepts HS256 only.
+Sensitive token values were not recorded.

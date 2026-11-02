@@ -1,0 +1,5 @@
+Finding: F-13 - Insecure container configuration
+Verification command: docker compose run --rm notevault id
+Observed result: uid=10001(notevault) gid=10001(notevault) groups=10001(notevault)
+Expected secure result: The application runs as a dedicated non-root user and no secret is baked into the image.
+Root cause addressed: The image uses a pinned slim base, copies only requirements.txt and app.py, creates a non-root user, and receives NOTEVAULT_SECRET at runtime.

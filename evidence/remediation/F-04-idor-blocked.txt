@@ -1,0 +1,5 @@
+Finding: F-04 - Insecure direct object reference
+Verification request: Authenticated Alice request to GET /api/notes/2
+Observed result: HTTP/1.1 404 NOT FOUND with {"error":"not found"}
+Expected secure result: Alice cannot read an administrator-owned note.
+Root cause addressed: The query requires both the note ID and the authenticated owner.

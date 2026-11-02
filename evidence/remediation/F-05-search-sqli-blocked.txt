@@ -1,0 +1,5 @@
+Finding: F-05 - Search SQL injection
+Verification request: Authenticated Alice search using %' OR owner='admin' -- 
+Observed result: HTTP/1.1 200 OK; no admin-owned note content was returned.
+Expected secure result: Search terms remain data and results remain restricted to Alice's notes.
+Root cause addressed: Search uses parameterized owner and LIKE parameters.

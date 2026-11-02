@@ -1,0 +1,5 @@
+Finding: F-09 - Session cookie security
+Verification result: Login issued the notevault_session cookie with HttpOnly and SameSite=Lax.
+Local HTTP note: SESSION_COOKIE_SECURE=0 is used only for localhost HTTP testing. HTTPS deployments must set SESSION_COOKIE_SECURE=1, which adds Secure.
+Expected secure result: Authentication and Flask-WTF session cookies are separated, protected from JavaScript access, and configured for the deployment transport.
+Sensitive cookie values were not recorded.

@@ -1,0 +1,5 @@
+Finding: F-06 - Stored cross-site scripting
+Verification payload: <script>alert(document.domain)</script>
+Observed result: The homepage rendered the payload as &lt;script&gt;alert(document.domain)&lt;/script&gt;; no alert executed.
+Expected secure result: User content is HTML-escaped and treated as text.
+Root cause addressed: Notes and search results are rendered as structured template values without |safe.

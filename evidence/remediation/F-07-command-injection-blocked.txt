@@ -1,0 +1,5 @@
+Finding: F-07 - Export command injection
+Verification request: GET /export?fmt=txt%3Bid
+Observed result: HTTP/1.1 400 BAD REQUEST; unsupported format. No command output was returned.
+Expected secure result: Unrecognized formats are rejected without shell execution.
+Root cause addressed: Export uses an allowlist and no subprocess or shell.
