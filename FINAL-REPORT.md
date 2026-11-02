@@ -33,6 +33,9 @@
 
 NoteVault is a Flask web application that supports local user registration, login, note creation, note retrieval, note search, an administrator view, and an export convenience endpoint. The application stores users and notes in SQLite and runs locally in a Docker container.
 
+****Data-Flow Diagram****
+![NoteVault data-flow diagram and trust boundaries](evidence/architecture/dfd-trust-boundaries.png)
+
 The in-scope components are:
 
 - `app.py`: Flask routes, authentication, authorization, database access, rendering, and export behavior.
@@ -60,9 +63,21 @@ The in-scope endpoints are `/`, `/register`, `/login`, `/logout`, `/notes`, `/ap
 
 | Element / data flow | S | T | R | I | D | E | Top threat & mitigation |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| Browser → Flask login | Forged session | Login input altered | Weak audit trail | Session disclosure | Login abuse | Privilege escalation | Use strong secret management, parameterized SQL, secure cookies, and logging |
+| Browser → notes/search | Session misuse | Note content altered | No request integrity | IDOR/XSS exposes notes | Search abuse | Admin role abuse | Enforce ownership, escape output, add CSRF protection |
+| Flask → SQLite | Unauthorized reads | Data modification | Limited auditability | Password/hash disclosure | Expensive queries | SQL-driven privilege abuse | Parameterized queries, least privilege, restricted responses |
+| Flask → shell/export | Command execution | Output manipulation | No command audit | Host/container disclosure | Resource exhaustion | Container escape risk | Remove shell execution and use allowlisted formats |
+| Repository → CI/image | Malicious dependency | Workflow tampering | Weak provenance | Secret leakage | Build exhaustion | Supply-chain compromise | Pin actions, scan dependencies/images, generate SBOM, sign artifacts |
 
 *Then rank the top 5 risks by likelihood × impact.*
+
+| Rank | Risk | Likelihood | Impact | Rating | Reason |
+|---|---|---:|---:|---:|---|
+| 1 | Forged administrator session | High | Critical | Critical | Secret is exposed and admin identity can be forged |
+| 2 | SQL injection and command injection | High | High | Critical | User input reaches SQL and shell interpreters |
+| 3 | Broken object-level authorization | High | High | High | Any authenticated user can read another user's note |
+| 4 | Stored XSS | Medium | High | High | Stored content executes in another user's browser |
+| 5 | Vulnerable dependencies/container | Medium | High | High | Old components and root container increase compromise impact |
 
 ---
 
@@ -188,6 +203,76 @@ One block per finding (copy as needed):
 | Evidence | `evidence/findings/F-08-password-disclosure.txt` and `evidence/findings/screenshots/F-08-password-disclosure.png` |
 
 - The root cause has two parts: the application uses MD5 instead of a slow password-hashing scheme such as Argon2id, bcrypt, or scrypt, and the administrator endpoint serializes the password column into its JSON response. Password hashes must never be returned to clients.
+
+
+### Finding F-09 — Missing security attributes on session cookie
+
+| Field | Value |
+|---|---|
+| CWE | CWE-614 — Sensitive Cookie in HTTPS Session Without Secure Attribute; CWE-1004 — Sensitive Cookie Without HttpOnly Flag |
+| OWASP 2025 | A07 — Identification and Authentication Failures |
+| Severity | Medium |
+| Location | `app.py`, `/login` and `/logout` cookie handling |
+| Reproduction | Log in normally and inspect the `Set-Cookie` response header. The session cookie is issued without `HttpOnly`, `Secure`, or `SameSite` attributes. |
+| Impact | Browser-side scripts may access the session token, and the token may be sent in unsafe cross-site contexts. |
+| Evidence | `evidence/findings/F-09-cookie-security.txt` and `evidence/findings/screenshots/F-09-cookie-security.png` |
+
+
+
+### Finding F-10 — Missing CSRF protection
+
+| Field | Value |
+|---|---|
+| CWE | CWE-352 — Cross-Site Request Forgery |
+| OWASP 2025 | A01 — Broken Access Control |
+| Severity | Medium |
+| Location | `app.py`, state-changing POST routes including `/notes` and `/register` |
+| Reproduction | Authenticate as Alice and submit `POST /notes` without a CSRF token. The request is accepted even when an external-looking `Origin` header is supplied. |
+| Impact | A victim's authenticated browser could be induced to perform actions without the victim intentionally submitting the form. |
+| Evidence | `evidence/findings/F-10-csrf.txt` and `evidence/findings/screenshots/F-10-csrf.png` |
+
+
+### Finding F-11 — Flask debug mode and broad network binding
+
+| Field | Value |
+|---|---|
+| CWE | CWE-489 — Active Debug Code; CWE-16 — Configuration |
+| OWASP 2025 | A05 — Injection / A10 — Mishandling of Exceptional Conditions |
+| Severity | High |
+| Location | `app.py`, application startup |
+| Reproduction | Inspect the startup configuration and run the application locally. The app uses `debug=True` and binds to `0.0.0.0`. A controlled malformed request may expose development traceback information. |
+| Impact | Detailed errors can disclose source paths, SQL statements, configuration details, and implementation information. Broad binding increases unintended network exposure. |
+| Evidence | `evidence/findings/F-11-debug-mode.txt` and  `evidence/findings/screenshots/F-11-debug-mode.png` |
+
+
+### Finding F-12 — Outdated and vulnerable dependency stack
+
+| Field | Value |
+|---|---|
+| CWE | CWE-1104 — Use of Unmaintained Third-Party Components |
+| OWASP 2025 | A06 — Vulnerable and Outdated Components |
+| Severity | High |
+| Location | `requirements.txt` and the container image |
+| Reproduction | Inspect the pinned dependency versions and run the repository Trivy/SCA scan. The baseline scan reports high-severity dependency or image findings. |
+| Impact | Known vulnerabilities in framework, HTTP, templating, or cryptographic components can compromise confidentiality, integrity, or availability. |
+| Evidence | `evidence/findings/F-12-dependencies.txt` and  `evidence/findings/screenshots/F-12-dependencies.png` |
+
+
+
+### Finding F-13 — Insecure Docker container configuration
+
+| Field | Value |
+|---|---|
+| CWE | CWE-250 — Execution with Unnecessary Privileges; CWE-16 — Configuration |
+| OWASP 2025 | A05 — Security Misconfiguration |
+| Severity | High |
+| Location | `Dockerfile` and container runtime configuration |
+| Reproduction | Inspect and build the image, then run `docker compose run --rm notevault id`. The image uses a mutable base tag, copies the entire build context, includes a secret-like environment value, and runs as root. |
+| Impact | A container compromise has greater impact when the process runs as root. Broad build context and embedded secrets increase leakage and supply-chain risk. |
+| Evidence | `evidence/findings/F-13-container.txt` and  `evidence/findings/screenshots/F-13-container.png` |
+
+
+
 
 ---
 

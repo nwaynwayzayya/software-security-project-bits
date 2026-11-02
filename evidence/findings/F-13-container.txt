@@ -1,0 +1,18 @@
+Finding: F-13 - Insecure container configuration
+Date: 2026-11-02T02:48:24.2639540+07:00
+Git commit: fa477e23a1e620b167e4989804225813b2e17b06
+File: Dockerfile
+
+Observed configuration issues:
+- Mutable Python base image tag.
+- No non-root USER instruction.
+- Broad COPY . . instruction.
+- Secret-like application value placed in image environment.
+- No root .dockerignore or minimal runtime file set.
+
+Runtime check:
+docker compose run --rm notevault id showed the container runtime user.
+The exact output was reviewed locally and is summarized here without secrets.
+
+Expected secure behavior:
+Use a maintained pinned base image, remove baked secrets, copy only required files, add a non-root runtime user, and keep the container least-privileged.

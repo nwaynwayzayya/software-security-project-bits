@@ -1,0 +1,21 @@
+Finding: F-12 - Outdated and vulnerable dependency stack
+Date: 2026-11-02T02:47:44.1996310+07:00
+Git commit: fa477e23a1e620b167e4989804225813b2e17b06
+Manifest: requirements.txt
+
+Baseline dependencies:
+# NoteVault dependencies. (Intentionally pinned to older versions — part of the
+# supply-chain assessment is to find and remediate the vulnerable ones.)
+Flask==2.0.1
+Werkzeug==2.0.1
+Jinja2==3.0.1
+PyJWT==1.7.1
+requests==2.25.1
+urllib3==1.26.4
+
+
+Assessment:
+The project uses old pinned versions of Flask, Werkzeug, Jinja2, PyJWT, requests, and urllib3. The repository CI Trivy scan reported HIGH/CRITICAL dependency or filesystem findings on the vulnerable baseline.
+
+Expected secure behavior:
+Dependencies should be upgraded to maintained compatible versions, then rescanned. The final report must identify which findings were fixed and which residual risks remain.

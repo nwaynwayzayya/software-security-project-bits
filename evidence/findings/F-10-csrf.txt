@@ -1,0 +1,22 @@
+Finding: F-10 - Missing CSRF protection
+Date: 2026-11-02T03:06:49.5136590+07:00
+Git commit: fa477e23a1e620b167e4989804225813b2e17b06
+Endpoint: POST http://localhost:8080/notes
+
+Authenticated control:
+Alice successfully logged in and the session cookie was stored locally.
+
+Attack request:
+A POST request was sent without a CSRF token using:
+Origin: http://attacker.example.invalid
+
+Observed response:
+HTTP/1.0 302 FOUND
+
+Result:
+CONFIRMED. The state-changing request was accepted without CSRF validation.
+
+Expected secure behavior:
+A state-changing request without a valid CSRF token should return a rejection such as HTTP 400 or HTTP 403.
+
+No external system was contacted.

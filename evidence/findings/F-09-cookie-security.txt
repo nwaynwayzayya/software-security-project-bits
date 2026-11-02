@@ -1,0 +1,13 @@
+Finding: F-09 - Missing security attributes on session cookie
+Date: 2026-11-02T02:43:54.9371854+07:00
+Git commit: fa477e23a1e620b167e4989804225813b2e17b06
+Endpoint: POST http://localhost:8080/login
+
+Observed:
+The response sets a session cookie without the expected HttpOnly, Secure, and SameSite attributes.
+
+Expected secure behavior:
+The session cookie should use HttpOnly, Secure when deployed over HTTPS, and an appropriate SameSite policy.
+
+Sensitive-value handling:
+The cookie value was intentionally omitted from this evidence.

@@ -1,0 +1,17 @@
+Finding: F-11 - Flask debug mode and broad network binding
+Date: 2026-11-02T02:47:01.6659514+07:00
+Git commit: fa477e23a1e620b167e4989804225813b2e17b06
+
+Source evidence:
+app.py starts Flask with host=0.0.0.0 and debug=True.
+
+Runtime test:
+A controlled malformed request was sent only to the local NoteVault instance.
+Response status:
+HTTP/1.0 401 UNAUTHORIZED
+
+Observed debug indicators:
+C:\Users\DELL\AppData\Local\Temp\notevault-debug-body.html:4:Server: Werkzeug/2.0.1 Python/3.12.16
+
+Expected secure behavior:
+Production execution should use debug=False and should not expose the development debugger. Network exposure should be restricted to the intended interface.
