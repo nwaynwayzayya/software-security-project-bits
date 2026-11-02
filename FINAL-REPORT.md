@@ -11,7 +11,7 @@
 | Members (name + ID) | Kay Khine Maw (#6631503060) & Nway Nway Zay Ya (#6631503081) |
 | Target application | NoteVault |
 | Repository URL | https://github.com/nwaynwayzayya/software-security-project-bits |
-| Date | 2026-11-02 |
+| Date | |
 
 ## AI-tool usage disclosure
 *Academic integrity: state how you used any AI tools (ChatGPT, Copilot, etc.) — e.g. searching, coding, translating, drafting. "None" is a valid answer.*
