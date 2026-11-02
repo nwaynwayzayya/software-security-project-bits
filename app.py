@@ -1,30 +1,41 @@
-"""
-NoteVault — a small team note-sharing web app + JSON API (term-project starter).
-
-This is your TERM-PROJECT TARGET. It is a normal-looking app that contains several
-realistic security weaknesses. Your job (see project/README.md): threat-model it,
-find and document the vulnerabilities, fix them, and harden the build/release.
-
-We do NOT list the vulnerabilities here — finding them is the assignment.
-
-Run:  docker compose up   (then http://localhost:8080)
-"""
+"""NoteVault web application with hardened local authentication and note access."""
 import hashlib
 import hmac
 import os
 import sqlite3
-import subprocess
 
 import jwt  # PyJWT
-from flask import Flask, request, jsonify, render_template_string, redirect, make_response
+from flask import (
+    Flask,
+    jsonify,
+    make_response,
+    redirect,
+    render_template_string,
+    request,
+)
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 DB = "/tmp/notevault.db"
-SECRET = "notevault-dev-secret"  # used to sign session tokens
+SECRET = os.environ.get("NOTEVAULT_SECRET")
+if not SECRET:
+    raise RuntimeError("NOTEVAULT_SECRET must be configured")
 
-# Anti-copying: every team's build is seeded with a marker derived from their own TEAM_ID, so
-# any evidence a team submits (SQLi dump, IDOR response, admin-panel screenshot) that shows the
-# admin's notes carries a value traceable to exactly one team — see instructor/anti-cheating.md.
+# Baseline used a single cookie name for both Flask's CSRF session and the JWT.
+# resp.set_cookie("session", tok)
+app.config.update(
+    SECRET_KEY=SECRET,
+    SESSION_COOKIE_NAME="flask_session",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "0") == "1",
+)
+csrf = CSRFProtect(app)
+# Keep Flask-WTF's server-side CSRF session separate from the signed auth token.
+AUTH_COOKIE = "notevault_session"
+
+# The marker keeps each team's local seed data traceable without affecting authorization.
 TEAM_ID = os.environ.get("TEAM_ID", "unassigned")
 TEAM_SALT = os.environ.get("TEAM_SALT", "notevault-anti-copy-dev-salt")
 
@@ -38,14 +49,25 @@ PAGE = """
 <h1>NoteVault</h1>
 {% if user %}<p>Signed in as <b>{{ user }}</b> · <a href="/logout">logout</a>
   {% if is_admin %}· <a href="/admin">admin</a>{% endif %}</p>
-<form method=post action="/notes"><input name=title placeholder=title>
+<form method=post action="/notes">
+  <input type=hidden name=csrf_token value="{{ csrf_token() }}">
+  <input name=title placeholder=title>
   <input name=body placeholder=note><button>Add note</button></form>
-<h3>Your notes</h3>{{ notes_html|safe }}
+<h3>Your notes</h3>
+<ul>
+{% for note in notes %}
+  <li>#{{ note["id"] }} <b>{{ note["title"] }}</b>: {{ note["body"] }}</li>
+{% endfor %}
+</ul>
 <form action="/search"><input name=q placeholder="search notes"><button>Search</button></form>
 {% else %}
-<form method=post action="/login">user <input name=username> pass <input name=password type=password>
+<form method=post action="/login">
+  <input type=hidden name=csrf_token value="{{ csrf_token() }}">
+  user <input name=username> pass <input name=password type=password>
   <button>Login</button></form>
-<form method=post action="/register">new: <input name=username> <input name=password type=password>
+<form method=post action="/register">
+  <input type=hidden name=csrf_token value="{{ csrf_token() }}">
+  new: <input name=username> <input name=password type=password>
   <button>Register</button></form>
 {% endif %}
 """
@@ -64,9 +86,11 @@ def seed():
         "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, role TEXT);"
         "CREATE TABLE notes (id INTEGER PRIMARY KEY, owner TEXT, title TEXT, body TEXT);"
     )
+    # Baseline stored fast MD5 digests; password storage now uses Werkzeug's adaptive hash.
+    # hashlib.md5(password.encode()).hexdigest()
     con.executemany("INSERT INTO users (username, password, role) VALUES (?,?,?)",
-                    [("alice", hashlib.md5(b"alicepw").hexdigest(), "user"),
-                     ("admin", hashlib.md5(b"admin123").hexdigest(), "admin")])
+                    [("alice", generate_password_hash("alicepw"), "user"),
+                     ("admin", generate_password_hash("admin123"), "admin")])
     con.executemany("INSERT INTO notes (owner, title, body) VALUES (?,?,?)",
                     [("alice", "groceries", "milk, eggs"),
                      ("admin", "infra", "prod db password is hunter2"),
@@ -76,13 +100,16 @@ def seed():
 
 
 def current_user():
-    tok = request.cookies.get("session", "")
+    # Baseline accepted the "none" JWT algorithm and used the exposed source secret.
+    # data = jwt.decode(tok, baseline_secret, algorithms=["HS256", "none"])
+    tok = request.cookies.get(AUTH_COOKIE, "")
     if not tok:
         return None
     try:
-        data = jwt.decode(tok, SECRET, algorithms=["HS256", "none"])
-        return data.get("sub")
-    except Exception:
+        data = jwt.decode(tok, SECRET, algorithms=["HS256"])
+        username = data.get("sub")
+        return username if isinstance(username, str) and role_of(username) else None
+    except jwt.InvalidTokenError:
         return None
 
 
@@ -96,51 +123,80 @@ def role_of(username):
 @app.route("/")
 def home():
     user = current_user()
-    notes_html = ""
+    rows = []
     if user:
         con = db()
         rows = con.execute("SELECT id,title,body FROM notes WHERE owner = ?", (user,)).fetchall()
         con.close()
-        notes_html = "".join(
-            "<li>#%d <b>%s</b>: %s</li>" % (r["id"], r["title"], r["body"]) for r in rows)
-    return render_template_string(PAGE, user=user, is_admin=(user and role_of(user) == "admin"),
-                                  notes_html=notes_html)
+    return render_template_string(
+        PAGE,
+        user=user,
+        is_admin=(user and role_of(user) == "admin"),
+        notes=rows,
+    )
 
 
 @app.route("/register", methods=["POST"])
 def register():
-    username = request.form.get("username") or (request.json or {}).get("username")
-    password = request.form.get("password") or (request.json or {}).get("password")
-    role = request.form.get("role") or (request.json or {}).get("role") or "user"
+    payload = request.get_json(silent=True) or {}
+    username = request.form.get("username") or payload.get("username")
+    password = request.form.get("password") or payload.get("password")
+    if not username or not password:
+        return "username and password required", 400
+    # Baseline trusted request.form["role"], allowing public admin registration.
+    # role = request.form.get("role") or "user"
     con = db()
-    con.execute("INSERT INTO users (username, password, role) VALUES (?,?,?)",
-                (username, hashlib.md5(password.encode()).hexdigest(), role))
-    con.commit()
-    con.close()
+    try:
+        # Public registration always creates a least-privileged account.
+        con.execute(
+            "INSERT INTO users (username, password, role) VALUES (?,?,?)",
+            (username, generate_password_hash(password), "user"),
+        )
+        con.commit()
+    except sqlite3.IntegrityError:
+        con.rollback()
+        return "username already exists", 409
+    finally:
+        con.close()
     return redirect("/")
 
 
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form.get("username") or (request.json or {}).get("username")
-    password = request.form.get("password") or (request.json or {}).get("password")
+    payload = request.get_json(silent=True) or {}
+    username = request.form.get("username") or payload.get("username")
+    password = request.form.get("password") or payload.get("password")
+    # Baseline interpolated username and password into the SQL statement.
+    # q = "SELECT * FROM users WHERE username = '%s' AND password = '%s'" % (...)
     con = db()
-    q = "SELECT * FROM users WHERE username = '%s' AND password = '%s'" % (
-        username, hashlib.md5((password or "").encode()).hexdigest())
-    row = con.execute(q).fetchone()
+    row = con.execute(
+        "SELECT * FROM users WHERE username = ?",
+        (username,),
+    ).fetchone()
     con.close()
-    if not row:
+    # Baseline compared an MD5 digest directly; verify an adaptive password hash instead.
+    # hashlib.md5((password or "").encode()).hexdigest()
+    if not row or not check_password_hash(row["password"], password or ""):
         return "login failed", 401
     tok = jwt.encode({"sub": username}, SECRET, algorithm="HS256")
+    if isinstance(tok, bytes):
+        tok = tok.decode("ascii")
     resp = make_response(redirect("/"))
-    resp.set_cookie("session", tok)
+    # HttpOnly and SameSite reduce browser exposure; Secure is enabled for HTTPS deployments.
+    resp.set_cookie(
+        AUTH_COOKIE,
+        tok,
+        httponly=True,
+        secure=app.config["SESSION_COOKIE_SECURE"],
+        samesite="Lax",
+    )
     return resp
 
 
 @app.route("/logout")
 def logout():
     resp = make_response(redirect("/"))
-    resp.delete_cookie("session")
+    resp.delete_cookie(AUTH_COOKIE)
     return resp
 
 
@@ -151,19 +207,35 @@ def add_note():
         return "auth required", 401
     title = request.form.get("title", "")
     body = request.form.get("body", "")
+    # The baseline also used parameterized insertion; CSRF protection now guards this POST.
     con = db()
-    con.execute("INSERT INTO notes (owner,title,body) VALUES (?,?,?)", (user, title, body))
-    con.commit()
-    con.close()
+    try:
+        con.execute(
+            "INSERT INTO notes (owner,title,body) VALUES (?,?,?)",
+            (user, title, body),
+        )
+        con.commit()
+    finally:
+        con.close()
     return redirect("/")
 
 
 @app.route("/api/notes/<int:nid>")
 def api_note(nid):
-    if not current_user():
+    user = current_user()
+    if not user:
         return jsonify(error="auth required"), 401
+    # Baseline filtered only by note ID, so any authenticated user could read another owner.
+    # SELECT ... FROM notes WHERE id = ?
     con = db()
-    r = con.execute("SELECT id,owner,title,body FROM notes WHERE id = ?", (nid,)).fetchone()
+    r = con.execute(
+        """
+        SELECT id, owner, title, body
+        FROM notes
+        WHERE id = ? AND owner = ?
+        """,
+        (nid, user),
+    ).fetchone()
     con.close()
     return (jsonify(dict(r)) if r else (jsonify(error="not found"), 404))
 
@@ -174,12 +246,28 @@ def search():
     if not user:
         return "auth required", 401
     term = request.args.get("q", "")
+    # Baseline interpolated both the owner and search term into SQL.
+    # q = "SELECT ... WHERE owner='%s' AND body LIKE '%%%s%%'" % (user, term)
     con = db()
-    q = "SELECT id,title,body FROM notes WHERE owner='%s' AND body LIKE '%%%s%%'" % (user, term)
-    rows = con.execute(q).fetchall()
+    rows = con.execute(
+        """
+        SELECT id, title, body
+        FROM notes
+        WHERE owner = ? AND body LIKE ?
+        """,
+        (user, f"%{term}%"),
+    ).fetchall()
     con.close()
-    return render_template_string("<a href=/>back</a><ul>" +
-        "".join("<li>%s: %s</li>" % (r["title"], r["body"]) for r in rows) + "</ul>")
+    return render_template_string(
+        """
+        <a href="/">back</a><ul>
+        {% for note in notes %}
+          <li>{{ note["title"] }}: {{ note["body"] }}</li>
+        {% endfor %}
+        </ul>
+        """,
+        notes=rows,
+    )
 
 
 @app.route("/admin")
@@ -187,8 +275,10 @@ def admin():
     user = current_user()
     if not user or role_of(user) != "admin":
         return "forbidden", 403
+    # Baseline selected the password column and returned hashes to the client.
+    # SELECT id, username, password, role FROM users
     con = db()
-    rows = con.execute("SELECT id,username,password,role FROM users").fetchall()
+    rows = con.execute("SELECT id,username,role FROM users").fetchall()
     con.close()
     return jsonify([dict(r) for r in rows])
 
@@ -197,13 +287,20 @@ def admin():
 def export():
     if not current_user():
         return "auth required", 401
+    # Baseline executed attacker-controlled fmt through subprocess with shell=True.
+    # subprocess.run("echo exporting notes as " + fmt, shell=True, ...)
     fmt = request.args.get("fmt", "txt")
-    # convenience "export" feature
-    out = subprocess.run("echo exporting notes as " + fmt, shell=True,
-                         capture_output=True, text=True)
-    return "<pre>%s</pre>" % out.stdout
+    if fmt != "txt":
+        return "unsupported format", 400
+    return "<pre>exporting notes as txt</pre>"
 
 
 if __name__ == "__main__":
     seed()
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    # Baseline enabled the Werkzeug debugger; keep debug disabled for all runtime modes.
+    # app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(
+        host=os.environ.get("NOTEVAULT_HOST", "0.0.0.0"),
+        port=int(os.environ.get("NOTEVAULT_PORT", "8080")),
+        debug=False,
+    )

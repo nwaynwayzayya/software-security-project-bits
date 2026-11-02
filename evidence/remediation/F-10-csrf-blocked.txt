@@ -1,0 +1,5 @@
+Finding: F-10 - Missing CSRF protection
+Verification request: Authenticated POST /notes without csrf_token
+Observed result: HTTP/1.1 400 BAD REQUEST; The CSRF token is missing.
+Expected secure result: State-changing requests without a valid CSRF token are rejected.
+Root cause addressed: Flask-WTF CSRFProtect is enabled and all HTML state-changing forms include csrf_token.

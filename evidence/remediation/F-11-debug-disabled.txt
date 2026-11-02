@@ -1,0 +1,4 @@
+Finding: F-11 - Debug mode and broad exposure
+Verification result: Container startup reported Debug mode: off.
+Source result: app.run(..., debug=False); container exposure is restricted to 127.0.0.1:8080 by Compose.
+Expected secure result: The Werkzeug debugger is unavailable and the local service is not published on all host interfaces.

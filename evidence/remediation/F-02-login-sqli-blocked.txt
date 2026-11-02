@@ -1,0 +1,5 @@
+Finding: F-02 - Login SQL injection
+Verification request: POST /login with username=' OR 1=1 --  and an incorrect password
+Observed result: HTTP/1.1 401 UNAUTHORIZED; login failed
+Expected secure result: SQL syntax supplied as a username is treated as data and cannot bypass authentication.
+Root cause addressed: The login lookup uses a parameterized query and verifies the password hash separately.

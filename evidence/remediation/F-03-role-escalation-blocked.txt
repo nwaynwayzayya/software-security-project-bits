@@ -1,0 +1,5 @@
+Finding: F-03 - Registration privilege escalation
+Verification request: POST /register with role=admin for a disposable account
+Observed result: Registration returned HTTP/1.1 302 FOUND; the account then received HTTP/1.1 403 FORBIDDEN from /admin.
+Expected secure result: Public registration always creates a user-role account.
+Root cause addressed: The server ignores the submitted role and assigns user.

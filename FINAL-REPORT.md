@@ -280,14 +280,86 @@ One block per finding (copy as needed):
 
 Per finding: the fix, **before/after** code, and the commit that implements it.
 
-### Fix for F-01
+The remediation was implemented locally and verified against the vulnerable attack
+procedures. Commit hashes should be filled in after the remediation commits are
+created and pushed.
+
+### Fixes for F-01, F-09, and F-11 — authentication and runtime configuration
+
 ```diff
-- vulnerable line
-+ fixed line
+- data = jwt.decode(tok, SECRET, algorithms=["HS256", "none"])
++ data = jwt.decode(tok, SECRET, algorithms=["HS256"])
+- resp.set_cookie("session", tok)
++ resp.set_cookie("notevault_session", tok, httponly=True,
++                 secure=SESSION_COOKIE_SECURE, samesite="Lax")
+- app.run(host="0.0.0.0", port=8080, debug=True)
++ app.run(host=NOTEVAULT_HOST, port=NOTEVAULT_PORT, debug=False)
 ```
-- **Why this fixes it:** …
-- **Commit:** `<hash>`
-- **Proof the exploit now fails:** (screenshot)
+
+- **Why this fixes it:** The signing secret is injected at runtime, `none` is not
+  accepted, the CSRF session and authentication cookie are separate, cookie
+  protections are configured, and the Werkzeug debugger is disabled.
+- **Commit:** `4d9c831`
+- **Proof:** `evidence/remediation/F-01-forged-session-blocked.txt`,
+  `F-09-cookie-secured.txt`, and `F-11-debug-disabled.txt`.
+
+### Fixes for F-02 and F-05 — SQL injection
+
+```diff
+- q = "SELECT ... WHERE username = '%s'" % username
+- rows = con.execute(q).fetchall()
++ rows = con.execute(
++     "SELECT ... WHERE username = ? AND body LIKE ?",
++     (username, f"%{term}%"),
++ ).fetchall()
+```
+
+- **Why this fixes it:** User input is passed as SQL parameters and cannot change
+  the SQL statement structure.
+- **Commit:** `4d9c831`
+- **Proof:** `evidence/remediation/F-02-login-sqli-blocked.txt` and
+  `F-05-search-sqli-blocked.txt`.
+
+### Fixes for F-03 and F-04 — authorization
+
+- Registration ignores client-supplied roles and always creates a `user`.
+- Note retrieval filters by both note ID and authenticated owner.
+- **Commit:** `4d9c831`
+- **Proof:** `evidence/remediation/F-03-role-escalation-blocked.txt` and
+  `F-04-idor-blocked.txt`.
+
+### Fixes for F-06 and F-07 — output and command execution
+
+- Notes and search results are passed as structured template data, allowing Jinja
+  escaping to prevent stored XSS.
+- Export accepts only the allowlisted `txt` format and no longer invokes a shell.
+- **Commit:** `4d9c831`
+- **Proof:** `evidence/remediation/F-06-xss-escaped.txt` and
+  `F-07-command-injection-blocked.txt`.
+
+### Fix for F-08 — password protection and data minimization
+
+- MD5 was replaced with Werkzeug's adaptive password hashing and verification.
+- The admin response selects only `id`, `username`, and `role`; password hashes
+  are never serialized.
+- **Commit:** `4d9c831`
+- **Proof:** `evidence/remediation/F-08-password-protected.txt`.
+
+### Fix for F-10 — CSRF protection
+
+- Flask-WTF `CSRFProtect` validates state-changing requests.
+- Login, registration, and note forms include a CSRF token.
+- **Commit:** `4d9c831`
+- **Proof:** `evidence/remediation/F-10-csrf-blocked.txt`.
+
+### Fixes for F-12 and F-13 — dependencies and container
+
+- Dependencies were upgraded to maintained versions.
+- The image uses a pinned slim base, copies only required runtime files, does not
+  bake in an application secret, and runs as UID 10001.
+- **Commit:** `1cc52da`
+- **Proof:** `evidence/remediation/F-12-dependencies-rescanned.txt` and
+  `F-13-container-hardened.txt`.
 
 ---
 
