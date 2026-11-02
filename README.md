@@ -13,14 +13,18 @@ but it was built quickly, without a security review. Your job is to fix that.
 - Admin panel listing users
 - "Export" convenience endpoint
 
-## Run it
+## Run it locally
 ```bash
-cd project/starter-app
-export TEAM_ID=<your-team-name>   # seeds a traceability marker — see below
-docker compose up          # http://localhost:8080
-# seeded logins:  alice / alicepw   ·   admin / admin123
+export TEAM_ID=<your-team-name>
+export NOTEVAULT_SECRET=<local-development-secret>
+export SESSION_COOKIE_SECURE=0
+docker compose up --build
+# open http://localhost:8080
 ```
-Local (no Docker): `TEAM_ID=<your-team-name> python app.py` (after `pip install -r requirements.txt`)
+
+`NOTEVAULT_SECRET` is required at runtime and must not be committed. Set
+`SESSION_COOKIE_SECURE=1` when serving the application over HTTPS. The seeded
+accounts are for the authorized local sandbox only.
 
 > **Set `TEAM_ID` before your first build.** It seeds a small marker derived from your team
 > name into the app's own data — the same idea as the per-student flags in the weekly labs,

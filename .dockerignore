@@ -1,0 +1,9 @@
+.git
+.github
+evidence
+labs
+__pycache__
+*.pyc
+*.db
+.env
+step by step instructions.md
