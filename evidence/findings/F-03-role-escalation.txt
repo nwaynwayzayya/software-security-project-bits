@@ -30,32 +30,16 @@ Content-Length: 534
 Server: Werkzeug/2.0.1 Python/3.12.16
 Date: Sun, 01 Nov 2026 17:01:51 GMT
 
+Response structure (password values intentionally redacted):
 [
-  {
-    "id": 1, 
-    "password": "15da1f78ad7d474862865bab1aab4d51", 
-    "role": "user", 
-    "username": "alice"
-  }, 
-  {
-    "id": 2, 
-    "password": "0192023a7bbd73250516f069df18b500", 
-    "role": "admin", 
-    "username": "admin"
-  }, 
-  {
-    "id": 3, 
-    "password": "bf193c5d83f528d4b9a021aeb11db278", 
-    "role": "user", 
-    "username": "normal-registration-20261101"
-  }, 
-  {
-    "id": 4, 
-    "password": "bf193c5d83f528d4b9a021aeb11db278", 
-    "role": "admin", 
-    "username": "role-escalation-20261101"
-  }
+  {"id": 1, "password": "[REDACTED HASH]", "role": "user", "username": "alice"},
+  {"id": 2, "password": "[REDACTED HASH]", "role": "admin", "username": "admin"},
+  {"id": 3, "password": "[REDACTED HASH]", "role": "user", "username": "normal-registration-20261101"},
+  {"id": 4, "password": "[REDACTED HASH]", "role": "admin", "username": "role-escalation-20261101"}
 ]
+
+The response exposed a password field for every account. Values were not retained
+in the evidence because they are sensitive credential material.
 
 
 Result: CONFIRMED if the role-submitting account received HTTP 200 and administrator access.

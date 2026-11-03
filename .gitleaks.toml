@@ -1,0 +1,6 @@
+[allowlist]
+description = "Historical NoteVault evidence contains sanitized training hashes, not live credentials."
+paths = [
+  '''evidence/findings/F-03-role-escalation\.txt''',
+  '''evidence/findings/F-08-password-disclosure\.txt''',
+]
