@@ -409,11 +409,10 @@ created and pushed.
 - **Baseline failure evidence:** The original vulnerable baseline failed Semgrep
   and Trivy HIGH/CRITICAL gates. Retain the failed run screenshot as evidence
   that the pipeline blocks risky code.
-- **Final verification:** 
-
+- **Final verification:** All six jobs passed in the merged `main` workflow run.
 - **Baseline failure screenshot:** `evidence/ci/baseline-failure.png`
 - **Final success screenshot:** `evidence/ci/final-success.png`
-- **Final run:** [<paste the successful GitHub Actions URL>](https://github.com/nwaynwayzayya/software-security-project-bits/actions/runs/41618345311)
+- **Final run:** [NoteVault Security CI run 17](https://github.com/nwaynwayzayya/software-security-project-bits/actions/runs/41630264442)
 
 - **Gate behavior:** Python compilation and SBOM generation must complete;
   Semgrep uses `--severity ERROR --error`; Trivy filesystem and image scans use
@@ -428,11 +427,11 @@ escaped rendering, CSRF validation, runtime secret injection, safer cookies,
 maintained dependencies, and a non-root container. The baseline tag preserves
 the original application for reproducible before/after comparison.
 
-Residual work includes publishing and signing the final image, completing the
-successful post-remediation CI run, and verifying the final dependency scan when
-the Trivy database is available. Further hardening would include a production
-WSGI server, centralized audit logging, rate limiting, secret rotation, HTTPS,
-automated dependency update review, and more comprehensive automated tests.
+Future hardening could include publishing and signing a registry image digest,
+using a production WSGI server, centralized audit logging, rate limiting, secret
+rotation, HTTPS, automated dependency update review, and more comprehensive
+automated tests. The required local archive signing and post-remediation CI
+verification are complete.
 
 The main lesson was that security controls must be tested together: adding CSRF
 protection initially exposed a cookie-name collision, which was corrected by
@@ -466,4 +465,4 @@ separating the framework session cookie from the JWT authentication cookie.
 | CI pipeline — works, fails build appropriately (§7) | 10 |
 | Presentation & report clarity (§1, §8) | 5 |
 
-*All work stays within the [ethics policy](../ETHICS.md).*
+*All work stays within the [ethics policy](ETHICS.md).*
