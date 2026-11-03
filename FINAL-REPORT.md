@@ -11,7 +11,7 @@
 | Members (name + ID) | Kay Khine Maw (#6631503060) & Nway Nway Zay Ya (#6631503081) |
 | Target application | NoteVault |
 | Repository URL | https://github.com/nwaynwayzayya/software-security-project-bits |
-| Date | |
+| Date | 2026-11-03 |
 
 ## AI-tool usage disclosure
 *Academic integrity: state how you used any AI tools (ChatGPT, Copilot, etc.) — e.g. searching, coding, translating, drafting. "None" is a valid answer.*
@@ -23,7 +23,20 @@
 ---
 
 ## 1. Executive Summary
-*(½ page) What the app is, how many findings by severity, and the overall risk before vs. after your fixes.*
+NoteVault is a local Flask note-sharing application with registration, login, note
+creation, search, an administrator view, and an export endpoint backed by SQLite.
+The assessment confirmed 13 findings in the vulnerable baseline: 1 Critical, 10
+High, and 2 Medium. The most serious issues were forged administrator sessions,
+SQL injection, command injection, broken object-level authorization, stored XSS,
+weak password protection, and an insecure container configuration.
+
+The remediation branch moves the signing secret to runtime configuration, restricts
+JWT algorithms, parameterizes SQL, enforces note ownership and fixed registration
+roles, escapes rendered content, removes shell execution, replaces MD5 with
+adaptive password hashing, removes password fields from admin responses, adds
+CSRF protection, disables debug mode, upgrades dependencies, and runs the image as
+UID 10001. Post-remediation tests blocked the original exploits. Final CI results
+and the local release archive has a recorded Cosign verification result.
 
 ---
 
@@ -33,7 +46,7 @@
 
 NoteVault is a Flask web application that supports local user registration, login, note creation, note retrieval, note search, an administrator view, and an export convenience endpoint. The application stores users and notes in SQLite and runs locally in a Docker container.
 
-****Data-Flow Diagram****
+****Data-Flow Diagram**
 ![NoteVault data-flow diagram and trust boundaries](evidence/architecture/dfd-trust-boundaries.png)
 
 The in-scope components are:
@@ -364,27 +377,78 @@ created and pushed.
 ---
 
 ## 6. Supply-Chain Hardening  *(15 pts)*
-- **SBOM** (CycloneDX) generated — attach `sbom.json`, note component count.
-- **Artifact signed & verified** with Cosign — paste the `cosign verify` output.
-- One-paragraph **SLSA** self-assessment (which level, why).
+
+- **SBOM:** CycloneDX JSON generated at
+  `evidence/supply-chain/sbom.json`. It contains 7 direct components from
+  `requirements.txt`, including PyJWT 2.14.0 and urllib3 2.8.0 after the
+  Trivy findings were remediated.
+- **Image build:** The hardened image builds locally as
+  `software-security-project-notevault:latest`.
+- **Image record:** The local image digest is recorded in
+  `evidence/supply-chain/image-digest.txt`.
+- **Cosign:** A local release archive can be signed and verified with an
+  ephemeral key kept outside the repository. The local artifact,
+  `evidence/supply-chain/notevault-final.tar`, was verified successfully with
+  the Cosign bundle in `evidence/supply-chain/notevault-final.bundle`; the
+  public key is in `evidence/supply-chain/cosign.pub`. For a production
+  release, sign the immutable registry image digest and record the verification
+  output in `evidence/supply-chain/cosign-verify.txt`. No private signing key
+  is stored in this repository.
+- **SLSA self-assessment:** The project currently demonstrates partial Level 1
+  practices: a repeatable GitHub Actions workflow, a generated SBOM, pinned
+  action references, and a reviewable commit history. It is not claimed as a
+  higher SLSA level because the project does not yet provide a fully verified
+  hosted provenance attestation for the signed release artifact.
 
 ---
 
 ## 7. Security CI Pipeline  *(10 pts)*
-- Link to the GitHub Actions workflow (SAST + SCA + secret scanning).
-- Screenshot of a build **failing** on a HIGH/CRITICAL finding.
-- How the gate is configured (what fails the build).
+
+- **Workflow:** `.github/workflows/security-ci.yml`
+- **GitHub Actions:** https://github.com/nwaynwayzayya/software-security-project-bits/actions
+- **Baseline failure evidence:** The original vulnerable baseline failed Semgrep
+  and Trivy HIGH/CRITICAL gates. Retain the failed run screenshot as evidence
+  that the pipeline blocks risky code.
+- **Final verification:** Run the workflow after merging
+  `fix/notevault-hardening` into `main` and add the successful run URL and
+  screenshot here.
+- **Gate behavior:** Python compilation and SBOM generation must complete;
+  Semgrep uses `--severity ERROR --error`; Trivy filesystem and image scans use
+  `HIGH,CRITICAL` with `exit-code: "1"`; Gitleaks scans repository history.
 
 ---
 
 ## 8. Conclusion & Reflection  *(5 pts — clarity)*
-- Residual risks and what you'd harden next.
-- Lessons learned.
+The project reduced the highest risks by moving from an intentionally vulnerable
+baseline to parameterized database access, explicit authorization checks,
+escaped rendering, CSRF validation, runtime secret injection, safer cookies,
+maintained dependencies, and a non-root container. The baseline tag preserves
+the original application for reproducible before/after comparison.
+
+Residual work includes publishing and signing the final image, completing the
+successful post-remediation CI run, and verifying the final dependency scan when
+the Trivy database is available. Further hardening would include a production
+WSGI server, centralized audit logging, rate limiting, secret rotation, HTTPS,
+automated dependency update review, and more comprehensive automated tests.
+
+The main lesson was that security controls must be tested together: adding CSRF
+protection initially exposed a cookie-name collision, which was corrected by
+separating the framework session cookie from the JWT authentication cookie.
 
 ---
 
 ## Appendix
-- Tools used, references (OWASP/CWE links), and the team's task split.
+- **Tools:** Docker Compose, PowerShell, curl, Semgrep, Trivy, Gitleaks,
+  CycloneDX, GitHub Actions, and Cosign.
+- **References:** OWASP Top 10, OWASP API Security Top 10, CWE-78, CWE-79,
+  CWE-89, CWE-200, CWE-250, CWE-327, CWE-352, CWE-639, CWE-916, and CWE-1104.
+- **Task split:** Kay Khine Maw completed baseline capture, attack testing,
+  evidence collection, threat modeling, and report drafting. Nway Nway Zay Ya
+  should review the remediation branch, final CI run, release signing, and
+  presentation/demo preparation.
+- **Ethics:** All exploitation was performed only against the authorized local
+  NoteVault sandbox. No public deployment, real credentials, or external target
+  was used.
 
 ---
 

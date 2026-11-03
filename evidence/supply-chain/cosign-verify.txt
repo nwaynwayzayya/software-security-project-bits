@@ -1,0 +1,6 @@
+Artifact: notevault-final.tar
+Verification command:
+docker run --rm -v "${PWD}\evidence\supply-chain:/work" gcr.io/projectsigstore/cosign:latest verify-blob --key /work/cosign.pub --bundle /work/notevault-final.bundle /work/notevault-final.tar
+
+Observed output:
+Verified OK
