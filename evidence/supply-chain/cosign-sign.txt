@@ -1,0 +1,9 @@
+Artifact: evidence/supply-chain/notevault-final.tar
+Signer: ephemeral local Cosign key (private key deleted after signing)
+Command:
+docker run --rm -e COSIGN_PASSWORD -v "<temporary-key-dir>:/keys" -v "${PWD}\evidence\supply-chain:/work" gcr.io/projectsigstore/cosign:latest sign-blob --yes --key /keys/cosign.key --bundle /work/notevault-final.bundle /work/notevault-final.tar
+
+Verification command:
+docker run --rm -v "<temporary-key-dir>:/keys" -v "${PWD}\evidence\supply-chain:/work" gcr.io/projectsigstore/cosign:latest verify-blob --key /keys/cosign.pub --bundle /work/notevault-final.bundle /work/notevault-final.tar
+
+Private key was not retained in the repository.

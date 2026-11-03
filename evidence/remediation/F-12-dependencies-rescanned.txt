@@ -1,6 +1,7 @@
 Finding: F-12 - Outdated dependency stack
 Verification command: Trivy filesystem scan with vuln,misconfig,secret scanners and HIGH,CRITICAL severity.
 Baseline: The original pinned dependency set was replaced with maintained Flask, Flask-WTF, Jinja2, PyJWT, Werkzeug, requests, and urllib3 versions.
-Final scan result: The scan could not complete because Trivy's vulnerability database download timed out (context deadline exceeded). This is an environmental scan failure, not evidence that the dependency set is clean.
-Next verification: Re-run the same command or the GitHub Actions Trivy job when the vulnerability database is available, then record the actual findings and exit status here.
+Final filesystem scan result: requirements.txt reported 0 vulnerabilities and Dockerfile reported 0 HIGH/CRITICAL misconfigurations.
+The separate local image scan could not initialize its temporary vulnerability database because the database download timed out. The GitHub Actions container scan remains the authoritative image-gate result for the image.
+Patched versions: PyJWT 2.14.0 and urllib3 2.8.0, matching the scanner's listed fixed versions.
 Expected secure result: No unreviewed HIGH or CRITICAL findings remain in the final dependency set.
