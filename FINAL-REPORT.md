@@ -409,9 +409,12 @@ created and pushed.
 - **Baseline failure evidence:** The original vulnerable baseline failed Semgrep
   and Trivy HIGH/CRITICAL gates. Retain the failed run screenshot as evidence
   that the pipeline blocks risky code.
-- **Final verification:** Run the workflow after merging
-  `fix/notevault-hardening` into `main` and add the successful run URL and
-  screenshot here.
+- **Final verification:** 
+
+- **Baseline failure screenshot:** `evidence/ci/baseline-failure.png`
+- **Final success screenshot:** `evidence/ci/final-success.png`
+- **Final run:** [<paste the successful GitHub Actions URL>](https://github.com/nwaynwayzayya/software-security-project-bits/actions/runs/41618345311)
+
 - **Gate behavior:** Python compilation and SBOM generation must complete;
   Semgrep uses `--severity ERROR --error`; Trivy filesystem and image scans use
   `HIGH,CRITICAL` with `exit-code: "1"`; Gitleaks scans repository history.
